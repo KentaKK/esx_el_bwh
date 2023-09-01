@@ -7,6 +7,7 @@ CREATE TABLE `bwh_bans` (
   `unbanned` TINYINT NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 );
+
 CREATE TABLE `bwh_warnings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `receiver` text NOT NULL,
@@ -14,6 +15,7 @@ CREATE TABLE `bwh_warnings` (
   `message` text NOT NULL,
   PRIMARY KEY (`id`)
 );
+
 CREATE TABLE `bwh_identifiers` (
   `steam` VARCHAR(60) NOT NULL,
   `license` VARCHAR(60) NOT NULL,
