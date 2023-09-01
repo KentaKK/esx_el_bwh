@@ -2,7 +2,7 @@
 FiveM Ban/Warning/Help-Assist System for ESX
 
 ## Installation
-1. Download the [resource]((https://github.com/KentaKK/esx_el_bwh/edit/master/README.md))
+1. Download the [resource]((https://github.com/KentaKK/esx_el_bwh))
 2. Rename it to `el_bwh` and put it in your resources folder
 3. Import sql.sql into your database
 4. Edit the config to your liking
