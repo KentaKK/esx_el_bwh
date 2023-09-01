@@ -1,4 +1,4 @@
-ESX = nil
+ESX = ESX = exports["es_extended"]:getSharedObject()
 local discord_webhook = "" -- paste your discord webhook between the quotes if you want to enable discord logs.
 local bancache,namecache = {},{}
 local open_assists,active_assists = {},{}
@@ -6,9 +6,6 @@ local open_assists,active_assists = {},{}
 function split(s, delimiter)result = {};for match in (s..delimiter):gmatch("(.-)"..delimiter) do table.insert(result, match) end return result end
 
 Citizen.CreateThread(function() -- startup
-    TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-    while ESX==nil do Wait(0) end
-    
     MySQL.ready(function()
         refreshNameCache()
         refreshBanCache()
@@ -153,7 +150,7 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
                     print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage.")
 		end
             else
-                MySQL.Async.execute("INSERT INTO `bwh_identifiers` (`steam`, `license`, `ip`, `name`, `xbl`, `live`, `discord`, `fivem`) VALUES (@steam, @license, @ip, @name, @xbl, @live, @discord, @fivem) ON DUPLICATE KEY UPDATE `license`=@license, `ip`=@ip, `name`=@name, `xbl`=@xbl, `live`=@live, `discord`=@discord, `fivem`=@fivem",data)
+                MySQL.prepare("INSERT INTO `bwh_identifiers` (`steam`, `license`, `ip`, `name`, `xbl`, `live`, `discord`, `fivem`) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE {data["@steam"], data["@license"], data["@ip"], data["@name"], data["@xbl"], data["@live"], data["@discord"], data["@fivem"]}')
             end
         end
     else
