@@ -56,7 +56,7 @@ $("#banbtn").click(function() {
     if (target == 0 || target == "" || reason == "" || (length == "" && !perm)) {
         toast("One or more required fields are left empty");
     } else {
-        $.post(`http://${GetParentResourceName()}/ban`, JSON.stringify({ target: target, reason: reason, length: perm ? null : length, offline: offline }));
+        $.post(`https://${GetParentResourceName()}/ban`, JSON.stringify({ target: target, reason: reason, length: perm ? null : length, offline: offline }));
     }
 });
 
@@ -72,7 +72,7 @@ $("#warnbtn").click(function() {
     if (target == 0 || target == "" || message == "") {
         toast("One or more required fields are left empty");
     } else {
-        $.post(`http://${GetParentResourceName()}/warn`, JSON.stringify({ target: target, message: message, anon: anon }));
+        $.post(`https://${GetParentResourceName()}/warn`, JSON.stringify({ target: target, message: message, anon: anon }));
     }
 });
 
@@ -99,7 +99,7 @@ $("#permbanc").change(function() {
 });
 
 $("body").on("click", "#unbanbtn", function() {
-    $.post(`http://${GetParentResourceName()}/unban`, JSON.stringify({ id: $(this).data("id") }));
+    $.post(`https://${GetParentResourceName()}/unban`, JSON.stringify({ id: $(this).data("id") }));
     $(this).parent().parent().addClass("text-muted");
     var expiration = $($(this).parent().parent().find("#expire"));
     expiration.html(expiration.html() + " (unbanned)");
@@ -114,7 +114,7 @@ $("body").on("click", ".page-link", function() {
     $("#" + curwin + " > table > tbody").empty();
     $(".loader").show();
     if (curwin == "banlist") {
-        $.post(`http://${GetParentResourceName()}/getListData`, JSON.stringify({ list: curwin, page: page }), function(data) {
+        $.post(`https://${GetParentResourceName()}/getListData`, JSON.stringify({ list: curwin, page: page }), function(data) {
             $(".loader").hide();
             if (data === undefined) return;
             $.each(JSON.parse(data), function(i, item) {
@@ -131,7 +131,7 @@ $("body").on("click", ".page-link", function() {
             });
         });
     } else {
-        $.post(`http://${GetParentResourceName()}/getListData`, JSON.stringify({ list: curwin, page: page }), function(data) {
+        $.post(`https://${GetParentResourceName()}/getListData`, JSON.stringify({ list: curwin, page: page }), function(data) {
             $(".loader").hide();
             if (data === undefined) return;
             $.each(JSON.parse(data), function(i, item) {
@@ -153,7 +153,7 @@ $(function() {
     document.onkeyup = function(data) {
         if (data.which == 27) {
             toggle();
-            $.post(`http://${GetParentResourceName()}/hidecursor`, JSON.stringify({}));
+            $.post(`https://${GetParentResourceName()}/hidecursor`, JSON.stringify({}));
         }
     };
 
