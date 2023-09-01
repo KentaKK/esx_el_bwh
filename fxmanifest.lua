@@ -1,9 +1,11 @@
-fx_version 'adamant'
+fx_version 'cerulean'
 game 'gta5'
-
+use_experimental_fxv2_oal 'yes'
 author 'Elipse458'
 description 'el_bwh'
-version '1.7.2'
+version '2.0.0'
+
+shared_script '@es_extended/imports.lua'
 
 ui_page 'html/index.html'
 
@@ -12,7 +14,7 @@ client_scripts {
     'client.lua'
 }
 server_scripts {
-    '@mysql-async/lib/MySQL.lua',
+    '@oxmysql/lib/MySQL.lua',
     'config.lua',
     'server.lua'
 }
@@ -25,3 +27,6 @@ files {
     'html/jquery.datetimepicker.full.min.js',
     'html/date.format.js'
 }
+
+
+
