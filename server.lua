@@ -1,17 +1,20 @@
-ESX = ESX = exports["es_extended"]:getSharedObject()
-local discord_webhook = "" -- paste your discord webhook between the quotes if you want to enable discord logs.
+local DISCORD_WEBHOOK = "https://discord.com/api/webhooks/888033538283294721/mEtOmOu4xMr3ZGHVGpnKD3Y9oLOr_WE01FxFYcoMPQUSCXdN_sMj1o9rSbMRmQP3Mt20" -- paste your discord webhook between the quotes if you want to enable discord log.
+local DISCORD_NAME = "Ban-log"
+local STEAM_KEY = ""
+local DISCORD_IMAGE = "https://i.imgur.com/nOwaI24.png"
 local bancache,namecache = {},{}
 local open_assists,active_assists = {},{}
 
 function split(s, delimiter)result = {};for match in (s..delimiter):gmatch("(.-)"..delimiter) do table.insert(result, match) end return result end
 
-Citizen.CreateThread(function() -- startup
+CreateThread(function() -- startup
+    
     MySQL.ready(function()
         refreshNameCache()
         refreshBanCache()
     end)
 
-    sendToDiscord("el_bwh has been started...")
+    sendToDiscord("Admin system log elinditva...")
 
     ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length,offline)
         if not target or not reason then return end
@@ -39,26 +42,26 @@ Citizen.CreateThread(function() -- startup
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
             local warnlist = {}
-            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings LIMIT @limit",{["@limit"]=Config.page_element_limit})) do
+            for k,v in ipairs(MySQL.query.await('SELECT * FROM `bwh_warnings` LIMIT ?',{Config.page_element_limit})) do
                 v.receiver_name=namecache[v.receiver]
                 v.sender_name=namecache[v.sender]
                 table.insert(warnlist,v)
             end
-            cb(json.encode(warnlist),MySQL.Sync.fetchScalar("SELECT CEIL(COUNT(id)/@limit) FROM bwh_warnings",{["@limit"]=Config.page_element_limit}))
+            cb(json.encode(warnlist),MySQL.scalar('SELECT CEIL(COUNT(id)/?) FROM `bwh_warnings`',{Config.page_element_limit}))
         else logUnfairUse(xPlayer); cb(false) end
     end)
 
     ESX.RegisterServerCallback("el_bwh:getBanList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            local data = MySQL.Sync.fetchAll("SELECT * FROM bwh_bans LIMIT @limit",{["@limit"]=Config.page_element_limit})
+            local data = MySQL.query.await('SELECT * FROM `bwh_bans` LIMIT ?',{Config.page_element_limit})
             local banlist = {}
             for k,v in ipairs(data) do
                 v.receiver_name = namecache[json.decode(v.receiver)[1]]
                 v.sender_name = namecache[v.sender]
                 table.insert(banlist,v)
             end
-            cb(json.encode(banlist),MySQL.Sync.fetchScalar("SELECT CEIL(COUNT(id)/@limit) FROM bwh_bans",{["@limit"]=Config.page_element_limit}))
+            cb(json.encode(banlist),MySQL.scalar('SELECT CEIL(COUNT(id)/?) FROM `bwh_bans`',{Config.page_element_limit}))
         else logUnfairUse(xPlayer); cb(false) end
     end)
 
@@ -67,7 +70,7 @@ Citizen.CreateThread(function() -- startup
         if isAdmin(xPlayer) then
             if list=="banlist" then
                 local banlist = {}
-                for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_bans LIMIT @limit OFFSET @offset",{["@limit"]=Config.page_element_limit,["@offset"]=Config.page_element_limit*(page-1)})) do
+                for k,v in ipairs(MySQL.query.await('SELECT * FROM `bwh_bans` LIMIT ? OFFSET ?',{Config.page_element_limit, Config.page_element_limit*(page-1)})) do
                     v.receiver_name = namecache[json.decode(v.receiver)[1]]
                     v.sender_name = namecache[v.sender]
                     table.insert(banlist,v)
@@ -75,7 +78,7 @@ Citizen.CreateThread(function() -- startup
                 cb(json.encode(banlist))
             else
                 local warnlist = {}
-                for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings LIMIT @limit OFFSET @offset",{["@limit"]=Config.page_element_limit,["@offset"]=Config.page_element_limit*(page-1)})) do
+                for k,v in ipairs(MySQL.query('SELECT * FROM `bwh_warnings` LIMIT ? OFFSET ?',{Config.page_element_limit, Config.page_element_limit*(page-1)})) do
                     v.sender_name=namecache[v.sender]
                     v.receiver_name=namecache[v.receiver]
                     table.insert(warnlist,v)
@@ -88,7 +91,7 @@ Citizen.CreateThread(function() -- startup
     ESX.RegisterServerCallback("el_bwh:unban",function(source,cb,id)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            MySQL.Async.execute("UPDATE bwh_bans SET unbanned=1 WHERE id=@id",{["@id"]=id},function(rc)
+            MySQL.update('UPDATE `bwh_bans` SET `unbanned` = ? WHERE `id` = ?',{1, id},function(rc)
                 local bannedidentifier = "N/A"
                 for k,v in ipairs(bancache) do
                     if v.id==id then
@@ -97,18 +100,25 @@ Citizen.CreateThread(function() -- startup
                         break
                     end
                 end
+                sendToDiscord(("Admin ^1%s^7 unbanned ^1%s^7 (%s)"):format(xPlayer.getName(),(bannedidentifier~="N/A" and namecache[bannedidentifier]) and namecache[bannedidentifier] or "N/A",bannedidentifier))
                 logAdmin(("Admin ^1%s^7 unbanned ^1%s^7 (%s)"):format(xPlayer.getName(),(bannedidentifier~="N/A" and namecache[bannedidentifier]) and namecache[bannedidentifier] or "N/A",bannedidentifier))
                 cb(rc>0)
             end)
         else logUnfairUse(xPlayer); cb(false) end
     end)
+
     ESX.RegisterServerCallback("el_bwh:getIndexedPlayerList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
         	local players = {}
-        	for k,v in ipairs(ESX.GetPlayers()) do
-        		players[tostring(v)]=GetPlayerName(v)..(v==source and " (self)" or "")
-        	end
+                local xPlayers = ESX.GetExtendedPlayers() -- Returns all xPlayers
+                for _, xPlayer in pairs(xPlayers) do
+        		players[tostring(xPlayer.source)]=GetPlayerName(xPlayer.source)..(xPlayer.source == source and " (self)" or "")
+                        --logAdmin("xPlayer.source")
+                end
+        	--for k,v in ipairs(ESX.GetExtendedPlayers()) do
+        		--players[tostring(v)]=GetPlayerName(v)..(v == source and " (self)" or "")
+        	--end
         	cb(json.encode(players))
         else logUnfairUse(xPlayer); cb(false) end
     end)
@@ -125,9 +135,9 @@ end)
 
 AddEventHandler("playerConnecting",function(name, setKick, def)
     local identifiers = GetPlayerIdentifiers(source)
-    if #identifiers>0 and identifiers[1]~=nil then
+    if #identifiers > 0 and identifiers[1] ~= nil then
         local banned, data = isBanned(identifiers)
-        namecache[identifiers[1]]=GetPlayerName(source)
+        namecache[identifiers[1]] = GetPlayerName(source)
         if banned then
             print(("[^1"..GetCurrentResourceName().."^7] Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.id))
             local kickmsg = Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id)
@@ -147,10 +157,11 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
 		    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, removing player from server.")
 		    def.done("You need to have steam open to play on this server.")
 		else
-                    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage.")
+                    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage.") --(?, ?, ?, ?, ?, ?, ?, ?)
 		end
             else
-                MySQL.prepare("INSERT INTO `bwh_identifiers` (`steam`, `license`, `ip`, `name`, `xbl`, `live`, `discord`, `fivem`) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE {data["@steam"], data["@license"], data["@ip"], data["@name"], data["@xbl"], data["@live"], data["@discord"], data["@fivem"]}')
+                --print(data["@steam"])
+                MySQL.prepare('INSERT INTO `bwh_identifiers` (`steam`, `license`, `ip`, `name`, `xbl`, `live`, `discord`, `fivem`) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE fivem = VALUES(fivem)', {data["@steam"], data["@license"], data["@ip"], data["@name"], data["@xbl"], data["@live"], data["@discord"], data["@fivem"]})
             end
         end
     else
@@ -161,13 +172,13 @@ end)
 AddEventHandler("playerDropped",function(reason)
     if open_assists[source] then open_assists[source]=nil end
     for k,v in ipairs(active_assists) do
-        if v==source then
+        if v == source then
             active_assists[k]=nil
-            TriggerClientEvent("chat:addMessage",k,{color={255,0,0},multiline=false,args={"BWH","The admin that was helping you dropped from the server"}})
+            TriggerClientEvent("chat:addMessage",k,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Az admin, aki segitett lelépett a szerverröl!"}})
             return
         elseif k==source then
             TriggerClientEvent("el_bwh:assistDone",v)
-            TriggerClientEvent("chat:addMessage",v,{color={255,0,0},multiline=false,args={"BWH","The player you were helping dropped from the server, teleporting back..."}})
+            TriggerClientEvent("chat:addMessage",v,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," A játékos, akinek segitettél lelépett a szerverröl, vissza teleportálás folyamatban..."}})
             active_assists[k]=nil
             return
         end
@@ -176,29 +187,36 @@ end)
 
 function refreshNameCache()
     namecache={}
-    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT steam,name FROM bwh_identifiers")) do
+    for k,v in ipairs(MySQL.query.await('SELECT steam,name FROM bwh_identifiers')) do
         namecache[v.steam]=v.name
     end
 end
 
 function refreshBanCache()
     bancache={}
-    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,unbanned FROM bwh_bans")) do
+    for k,v in ipairs(MySQL.query.await("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,unbanned FROM bwh_bans")) do
         table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender]~=nil and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
     end
 end
 
-function sendToDiscord(msg)
-    if discord_webhook ~= "" then
-        PerformHttpRequest(discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg:gsub("%^%d",""),color=65280,}}}), {["Content-Type"]="application/json"})
-    end
+function sendToDiscord(name, message, color)
+  local connect = {
+        {
+            ["color"] = color,
+            ["title"] = "**".. name .."**",
+            ["description"] = message,
+            ["footer"] = {
+                ["text"] = "",
+            },
+        }
+    }
+  PerformHttpRequest(DISCORD_WEBHOOK, function(err, text, headers) end, 'POST', json.encode({username = DISCORD_NAME, embeds = connect, avatar_url = DISCORD_IMAGE}), { ['Content-Type'] = 'application/json' })
 end
 
 function logAdmin(msg)
-    for k,v in ipairs(ESX.GetPlayers()) do
-        if isAdmin(ESX.GetPlayerFromId(v)) then
-            TriggerClientEvent("chat:addMessage",v,{color={255,0,0},multiline=false,args={"BWH",msg}})
-            sendToDiscord(msg)
+    for _,xPlayer in pairs(ESX.GetExtendedPlayers()) do
+        if isAdmin(xPlayer) then
+            TriggerClientEvent("chat:addMessage", xPlayer.source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM", msg}})
         end
     end
 end
@@ -227,27 +245,31 @@ end
 
 function execOnAdmins(func)
     local ac = 0
-    for k,v in ipairs(ESX.GetPlayers()) do
-        if isAdmin(ESX.GetPlayerFromId(v)) then
+    local xPlayers = ESX.GetExtendedPlayers()
+    for _, xPlayer in pairs(xPlayers) do
+        if isAdmin(xPlayer) then
             ac = ac + 1
-            func(v)
+            func(xPlayer.source)
         end
     end
+    --print(ac)
     return ac
 end
 
+
 function logUnfairUse(xPlayer)
     if not xPlayer then return end
-    print(("[^1"..GetCurrentResourceName().."^7] Player %s (%s) tried to use an admin feature"):format(xPlayer.getName(),xPlayer.identifier))
-    logAdmin(("Player %s (%s) tried to use an admin feature"):format(xPlayer.getName(),xPlayer.identifier))
+    print(("[^1"..GetCurrentResourceName().."^7] Játékos %s (%s) megprobált admin parancsokat használni"):format(xPlayer.getName(),xPlayer.identifier))
+    sendToDiscord(("Játékos	%s (%s) megprobált admin parancsokat használni"):format(xPlayer.getName(),xPlayer.identifier))
 end
+
 
 function banPlayer(xPlayer,xTarget,reason,length,offline)
     local targetidentifiers,offlinename,timestring,data = {},nil,nil,nil
     if offline then
-        data = MySQL.Sync.fetchAll("SELECT * FROM bwh_identifiers WHERE steam=@identifier",{["@identifier"]=xTarget})
+        data = MySQL.query.await('SELECT * FROM `bwh_identifiers` WHERE steam = ?',{xTarget})
         if #data<1 then
-            return false, "~r~Identifier is not in identifiers database!"
+            return false, "~r~A Játékos nincs az adatbázisban!"
         end
         offlinename = data[1].name
         for k,v in pairs(data[1]) do
@@ -257,9 +279,10 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
         targetidentifiers = GetPlayerIdentifiers(xTarget.source)
     end
     if length=="" then length = nil end
-    MySQL.Async.execute("INSERT INTO bwh_bans(id,receiver,sender,length,reason) VALUES(NULL,@receiver,@sender,@length,@reason)",{["@receiver"]=json.encode(targetidentifiers),["@sender"]=xPlayer.identifier,["@length"]=length,["@reason"]=reason},function(_)
-        local banid = MySQL.Sync.fetchScalar("SELECT MAX(id) FROM bwh_bans")
-        logAdmin(("Player ^1%s^7 (%s) got banned by ^1%s^7, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and data[1].steam or xTarget.identifier,xPlayer.getName(),length~=nil and length or "PERMANENT",reason))
+    MySQL.insert('INSERT INTO `bwh_bans` (id, receiver, sender, length, reason) VALUES(NULL, ?, ?, ?, ?)',{json.encode(targetidentifiers), xPlayer.identifier, length, reason},function(_)
+        local banid = MySQL.scalar.await('SELECT MAX(id) FROM bwh_bans')
+        sendToDiscord(("Játékos %s (%s) ki lett tiltva a szerverröl! %s, Érvényesség: %s, Indok: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length~=nil and length or "Végleges",reason))
+        logAdmin(("Játékos %s (%s) ki lett tiltva a szerverröl! %s, Érvényesség: %s, Indok: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length~=nil and length or "Végleges",reason))
         if length~=nil then
             timestring=length
             local year,month,day,hour,minute = string.match(length,"(%d+)/(%d+)/(%d+) (%d+):(%d+)")
@@ -272,19 +295,19 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
             Citizen.SetTimeout(5000, function()
                 DropPlayer(xTarget.source,Config.banformat:format(reason,length~=nil and timestring or "PERMANENT",xPlayer.getName(),banid==nil and "1" or banid))
             end)
-        else return false, "~r~Unknown error (MySQL?)" end
+        else return false, "~r~Ismeretlen Hiba (MySQL?)" end
         return true, ""
     end)
 end
 
 function warnPlayer(xPlayer,xTarget,message,anon)
-    MySQL.Async.execute("INSERT INTO bwh_warnings(id,receiver,sender,message) VALUES(NULL,@receiver,@sender,@message)",{["@receiver"]=xTarget.identifier,["@sender"]=xPlayer.identifier,["@message"]=message})
+    MySQL.insert("INSERT INTO bwh_warnings(id,receiver,sender,message) VALUES(NULL,@receiver,@sender,@message)",{["@receiver"]=xTarget.identifier,["@sender"]=xPlayer.identifier,["@message"]=message})
     TriggerClientEvent("el_bwh:receiveWarn",xTarget.source,anon and "" or xPlayer.getName(),message)
-    logAdmin(("Admin ^1%s^7 warned ^1%s^7 (%s), Message: '%s'"):format(xPlayer.getName(),xTarget.getName(),xTarget.identifier,message))
+    sendToDiscord(("Admin ^1%s^7 figyelmeztette ^1%s^7 (%s) Játékost, Üzenet: '%s'"):format(xPlayer.getName(),xTarget.getName(),xTarget.identifier,message))
 end
 
 AddEventHandler("el_bwh:ban",function(sender,target,reason,length,offline)
-    if source=="" then -- if it's from server only
+    if source == "" then -- if it's from server only
         banPlayer(sender,target,reason,length,offline)
     end
 end)
@@ -295,39 +318,40 @@ AddEventHandler("el_bwh:warn",function(sender,target,message,anon)
     end
 end)
 
-RegisterCommand("assist", function(source, args, rawCommand)
+RegisterCommand("report", function(source, args, rawCommand)
     local reason = table.concat(args," ")
-    if reason=="" or not reason then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Please specify a reason"}}); return end
+    if reason == "" or not reason then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Kérlek, ird be az indokot."}}); return end
     if not open_assists[source] and not active_assists[source] then
-        local ac = execOnAdmins(function(admin) TriggerClientEvent("el_bwh:requestedAssist",admin,GetPlayerName(source),source); TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source,reason)}}) end)
-        if ac>0 then
+        local ac = execOnAdmins(function(admin)
+		TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source,reason)}}) end)
+        if ac > 0 then
             open_assists[source]=reason
-            Citizen.SetTimeout(120000,function()
+            Citizen.SetTimeout(300000,function()
                 if open_assists[source] then open_assists[source]=nil end
                 if GetPlayerName(source)~=nil then
-                    TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Your assist request has expired"}})
+                    TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," A segitségkérést visszavonták!"}})
                 end
             end)
-            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Assist request sent (expires in 120s), write ^1/cassist^7 to cancel your request"}})
+             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"ADMIN-SYSTEM |"," A Segitségkérésed el lett küldve! (5 percig érvényes), visszavonáshoz ^1/creport^7"}})
         else
-            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","There's no admins on the server"}})
+            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Jelenleg nincs elérhetö admin a szerveren!"}})
         end
     else
-        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Someone is already helping your or you already have a pending assist request"}})
+        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Valaki már segit neked, vagy van egy függöben lévö segitségkérésed!"}})
     end
 end)
 
-RegisterCommand("cassist", function(source, args, rawCommand)
+RegisterCommand("creport", function(source, args, rawCommand)
     if open_assists[source] then
         open_assists[source]=nil
-        TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Your request was successfuly cancelled"}})
+        TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"ADMIN-SYSTEM |"," A Segitségkérésed törölve!"}})
         execOnAdmins(function(admin) TriggerClientEvent("el_bwh:hideAssistPopup",admin) end)
     else
-        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You don't have any pending help requests"}})
+        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |","  Egy admin már elfogadta a segiségkérésedet, nem tudod visszavonni!"}})
     end
 end)
 
-RegisterCommand("finassist", function(source, args, rawCommand)
+RegisterCommand("rend", function(source, args, rawCommand)
     local xPlayer = ESX.GetPlayerFromId(source)
     if isAdmin(xPlayer) then
         local found = false
@@ -335,23 +359,23 @@ RegisterCommand("finassist", function(source, args, rawCommand)
             if v==source then
                 found = true
                 active_assists[k]=nil
-                TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Assist closed, teleporting back"}})
+                  TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"ADMIN-SYSTEM |"," Lezártad az ügyet, vissza teleportálás folyamatban..."}})
                 TriggerClientEvent("el_bwh:assistDone",source)
             end
         end
-        if not found then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You're not helping anyone"}}) end
+        if not found then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Jelenleg nem segitesz senkinek!"}}) end
     else
-        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You don't have permissions to use this command!"}})
+        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Nincs jogosultságod ehhez a parancshoz!"}})
     end
 end)
 
-RegisterCommand("bwh", function(source, args, rawCommand)
+RegisterCommand("sentry", function(source, args, rawCommand)
     local xPlayer = ESX.GetPlayerFromId(source)
     if isAdmin(xPlayer) then
         if args[1]=="ban" or args[1]=="warn" or args[1]=="warnlist" or args[1]=="banlist" then
             TriggerClientEvent("el_bwh:showWindow",source,args[1])
         elseif args[1]=="refresh" then
-            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Refreshing ban & name cache..."}})
+            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"ADMIN-SYSTEM |","Adatbázis frissitése folyamatban..."}})
             refreshNameCache()
             refreshBanCache()
         elseif args[1]=="assists" then
@@ -362,43 +386,44 @@ RegisterCommand("bwh", function(source, args, rawCommand)
             for k,v in pairs(active_assists) do
                 activeassistsmsg=activeassistsmsg.."^5ID "..k.." ("..GetPlayerName(k)..")^7 - "..v.." ("..GetPlayerName(v)..")\n"
             end
-            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"BWH","Pending assists:\n"..(openassistsmsg~="" and openassistsmsg or "^1No pending assists")}})
-            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"BWH","Active assists:\n"..(activeassistsmsg~="" and activeassistsmsg or "^1No active assists")}})
+            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Függöben lévö segitségkérések:\n"..(openassistsmsg~="" and openassistsmsg or "^1Nincs függöben lévö segitségkérés!")}})
+            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Elérhetö segitségkérések:\n"..(activeassistsmsg~="" and activeassistsmsg or "^1Nincs elérhetö segitségkérés")}})
         else
-            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Invalid sub-command! (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7)"}})
+            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Érvénytelen parancs! Egészitsd ki: (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7,^4reports^7)"}})
         end
     else
-        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You don't have permissions to use this command!"}})
+        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Nincs jogosultságod ehhez a parancshoz!"}})
     end
 end)
 
-function acceptAssist(xPlayer,target)
+function acceptAssist(xPlayer, target)
     if isAdmin(xPlayer) then
         local source = xPlayer.source
         for k,v in pairs(active_assists) do
             if v==source then
-                TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You're already helping someone"}})
+                TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Te már segitesz valakinek!"}})
                 return
             end
         end
         if open_assists[target] and not active_assists[target] then
             open_assists[target]=nil
             active_assists[target]=source
-            local coords = (GetConvar("onesync",false) or GetConvar("onesync_enableInfinity",false)) and GetEntityCoords(GetPlayerPed(target)) or nil
-            TriggerClientEvent("el_bwh:acceptedAssist",source,target,coords)
-            TriggerClientEvent("el_bwh:hideAssistPopup",source)
-            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Teleporting to player..."}})
+            local ped = GetPlayerPed(target)
+            local coords = GetEntityCoords(ped)
+            TriggerClientEvent("el_bwh:acceptedAssist", source, coords, target)
+            TriggerClientEvent("el_bwh:hideAssistPopup", source)
+              TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"ADMIN-SYSTEM |"," Teleportálás a játékoshoz..."}})
         elseif not open_assists[target] and active_assists[target] and active_assists[target]~=source then
-            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Someone is already helping this player"}})
+            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Már valaki segit ennek a játékosnak!"}})
         else
-            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Player with that id did not request help"}})
+            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Ez a játékos nem kért segitséget!"}})
         end
     else
-        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You don't have permissions to use this command!"}})
+        TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Nincs jogosultságod ehhez a parancshoz!"}})
     end
 end
 
-RegisterCommand("accassist", function(source, args, rawCommand)
+RegisterCommand("r", function(source, args, rawCommand)
     local xPlayer = ESX.GetPlayerFromId(source)
     local target = tonumber(args[1])
     acceptAssist(xPlayer,target)
