@@ -1,5 +1,5 @@
 Config = {
-    admin_groups = {"admin","superadmin"}, -- groups that can use admin commands
+    admin_groups = {"mod","admin","superadmin"}, -- groups that can use admin commands
     banformat = "KITILTVA!\nIndok: %s\nÉrvényesség: %s\nBannolt: %s (Ban ID: #%s)", -- message shown when banned (1st %s = reason, 2nd %s = expire, 3rd %s = banner, 4th %s = ban id)
     popassistformat = "Játékos %s segitséget kért!\nIrd be <span class='text-success'>/racc %s</span> az elfogadáshoz vagy <span class='text-danger'>/rdec</span> az elutasitához <span class='text-danger'>/rend</span> az ügy végéhez", -- popup assist message format
     chatassistformat = "Játékos %s segitséget kért!\nIrd be ^2/r %s^7 az elfogadáshoz vagy ^1/rdec^7 az elutasitáshoz.\n^4Indok^7: %s", -- chat assist message format
