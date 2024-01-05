@@ -31,14 +31,14 @@ end
 
 local function refreshNameCache()
     namecache={}
-    for _,v in ipairs(MySQL.query.await('SELECT steam,name FROM bwh_identifiers')) do
+    for _,v in ipairs(MySQL.query.await('SELECT `steam`,`name` FROM `bwh_identifiers`')) do
         namecache[v.steam]=v.name
     end
 end
 
 local function refreshBanCache()
-    bancache={}
-    for _,v in ipairs(MySQL.query.await("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,unbanned FROM bwh_bans")) do
+    bancache={}--SELECT `id`, `receiver`, `sender`, `length`, `reason`, `unbanned` FROM `bwh_bans`
+    for _,v in ipairs(MySQL.query.await('SELECT `id`, `receiver`, `sender`, UNIX_TIMESTAMP(length) AS `length`, `reason`, `unbanned` FROM `bwh_bans`')) do
         table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender] and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
     end
 end
@@ -57,12 +57,6 @@ local function logAdmin(msg)
     for _,xPlayer in pairs(a) do
         TriggerClientEvent("chat:addMessage", xPlayer.source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM", msg}})
     end
-end
-
-local function deleteBans()
-    MySQL.update('DELETE FROM `bwh_bans` WHERE `unbanned` = ?',{1},function(o)
-        print("Deleted "..o.." bans")
-    end)
 end
 
 local function banPlayer(xPlayer,xTarget,reason,length,offline)
@@ -146,9 +140,26 @@ local function acceptAssist(xPlayer, target)
     end
 end
 
+local function deleteBans()
+    local ban = {}
+    local t = os.time()
+    for _,v in ipairs(MySQL.query.await('SELECT `id`, `receiver`, `sender`, UNIX_TIMESTAMP(length) AS `length`, `reason`, `unbanned` FROM `bwh_bans`')) do
+        table.insert(ban,{id=v.id,sender=v.sender,sender_name=namecache[v.sender] and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
+    end
+    for _,b in ipairs(bancache) do
+        if not b.unbanned and b.length and b.length < t then
+            MySQL.update('UPDATE `bwh_bans` SET `unbanned` = 1 WHERE `length` = ?',{os.date("%Y-%m-%d %H:%M",b.length)})
+        end
+    end
+    MySQL.update('DELETE FROM `bwh_bans` WHERE `unbanned` = ?',{1},function(o)
+        print("Deleted "..o.." bans")
+    end)
+end
+
 local function isBanned(identifiers)
+    local time = os.time()
     for _,ban in ipairs(bancache) do
-        if not ban.unbanned and (not ban.length or ban.length > os.time()) then
+        if not ban.unbanned and (not ban.length or ban.length > time) then
             for _,bid in ipairs(ban.receiver) do
                 if Config.ip_ban and bid:find("ip:") then
                     for _,pid in ipairs(identifiers) do
@@ -157,9 +168,6 @@ local function isBanned(identifiers)
                 else
                     for _,pid in ipairs(identifiers) do
                         if bid == pid then return true, ban end
-                        if ban.length and ban.length < os.time() then
-                            MySQL.update('UPDATE `bwh_bans` SET `unbanned` = ? WHERE `lenght` = ?',{1, ban.length})
-                        end
                     end
                 end
             end
