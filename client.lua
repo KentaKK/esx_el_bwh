@@ -1,17 +1,4 @@
-
-local pos_before_assist,assisting,assist_target,last_assist,IsFirstSpawn = nil, false, nil, nil, true
-
-CreateThread(function()
-      SetNuiFocus(false, false)
-end)
-
---[[function GetIndexedPlayerList()
-	local players = {}
-	for k,v in ipairs(GetActivePlayers()) do
-		players[tostring(GetPlayerServerId(v))]=GetPlayerName(v)..(v==PlayerId() and " (self)" or "")
-	end
-	return json.encode(players)
-end]]
+local pos_before_assist, assisting, last_assist, IsFirstSpawn = nil, false, nil, true
 
 RegisterNUICallback("ban", function(data,cb)
 	if not data.target or not data.reason then return end
@@ -54,48 +41,46 @@ end)
 
 RegisterNetEvent("el_bwh:gotBanned")
 AddEventHandler("el_bwh:gotBanned",function(rsn)
-	Citizen.CreateThread(function()
+	CreateThread(function()
 		local scaleform = RequestScaleformMovie("mp_big_message_freemode")
-		while not HasScaleformMovieLoaded(scaleform) do Citizen.Wait(0) end
+		while not HasScaleformMovieLoaded(scaleform) do Wait(0) end
 		BeginScaleformMovieMethod(scaleform, "SHOW_SHARD_WASTED_MP_MESSAGE")
-		PushScaleformMovieMethodParameterString("~r~BANNED")
-		PushScaleformMovieMethodParameterString(rsn)
-		PushScaleformMovieMethodParameterInt(5)
+		ScaleformMovieMethodAddParamTextureNameString("~r~BANNED")
+		ScaleformMovieMethodAddParamTextureNameString(rsn)
+		ScaleformMovieMethodAddParamInt(5)
 		EndScaleformMovieMethod()
 		PlaySoundFrontend(-1, "LOSER", "HUD_AWARDS")
 		ClearDrawOrigin()
-		--ESX.UI.HUD.SetDisplay(0)
 		while true do
-			Citizen.Wait(0)
+			Wait(0)
 			DisableAllControlActions(0)
 			DisableFrontendThisFrame()
-			local ped = GetPlayerPed(-1)
+			local ped = PlayerPedId()
 			ESX.UI.Menu.CloseAll()
-			SetEntityCoords(ped, 0, 0, 0, 0, 0, 0, false)
+			SetEntityCoords(ped, 0, 0, 0, false, false, false, false)
 			FreezeEntityPosition(ped, true)
 			DrawRect(0.0,0.0,2.0,2.0,0,0,0,255)
 			DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255)
 		end
-		SetScaleformMovieAsNoLongerNeeded(scaleform)
 	end)
 end)
 
 RegisterNetEvent("el_bwh:receiveWarn")
 AddEventHandler("el_bwh:receiveWarn",function(sender,message)
 	TriggerEvent("chat:addMessage",{color={255,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Kaptál egy figyelmeztetést"..(sender~="" and " töle "..sender or "").."!\n-> "..message}})
-	Citizen.CreateThread(function()
+	CreateThread(function()
 		local scaleform = RequestScaleformMovie("mp_big_message_freemode")
-		while not HasScaleformMovieLoaded(scaleform) do Citizen.Wait(0) end
+		while not HasScaleformMovieLoaded(scaleform) do Wait(0) end
 		BeginScaleformMovieMethod(scaleform, "SHOW_SHARD_WASTED_MP_MESSAGE")
-		PushScaleformMovieMethodParameterString("~y~WARNING")
-		PushScaleformMovieMethodParameterString(message)
-		PushScaleformMovieMethodParameterInt(5)
+		ScaleformMovieMethodAddParamTextureNameString("~y~WARNING")
+		ScaleformMovieMethodAddParamTextureNameString(message)
+		ScaleformMovieMethodAddParamInt(5)
 		EndScaleformMovieMethod()
 		PlaySoundFrontend(-1, "LOSER", "HUD_AWARDS")
 		local drawing = true
-		Citizen.SetTimeout(Config.warning_screentime,function() drawing = false end)
+		SetTimeout(Config.warning_screentime,function() drawing = false end)
 		while drawing do
-			Citizen.Wait(0)
+			Wait(0)
 			DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255)
 		end
 		SetScaleformMovieAsNoLongerNeeded(scaleform)
@@ -110,21 +95,14 @@ end)
 
 RegisterNetEvent("el_bwh:acceptedAssist")
 AddEventHandler("el_bwh:acceptedAssist",function(co, t)
-        print("Player",t)
-        print(co)
-        --print(pos)
+    print("Player",t)
+    print(co)
 	if assisting then return end
 	local target = GetPlayerFromServerId(t)
-	--local target = GetPlayerPed(t)
-        --print(target)
 	if target then
-		--local pos = NetworkGetPlayerCoords(target)
-		--local pos = GetEntityCoords(target)
-                --print(pos)
 		local ped = PlayerPedId()
 		pos_before_assist = GetEntityCoords(ped)
 		assisting = true
-		assist_target = t
 		ESX.Game.Teleport(ped, co + vector3(0.0, 0.5, 0.0))
 	end
 end)
@@ -133,8 +111,7 @@ RegisterNetEvent("el_bwh:assistDone")
 AddEventHandler("el_bwh:assistDone",function()
 	if assisting then
 		assisting = false
-		if pos_before_assist~=nil then ESX.Game.Teleport(GetPlayerPed(-1),pos_before_assist+vector3(0,0.5,0)); pos_before_assist = nil end
-		assist_target = nil
+		if pos_before_assist then ESX.Game.Teleport(PlayerPedId(), pos_before_assist + vector3(0,0.5,0)); pos_before_assist = nil end
 	end
 end)
 
@@ -147,10 +124,10 @@ end)
 RegisterNetEvent("el_bwh:showWindow")
 AddEventHandler("el_bwh:showWindow",function(win)
 	if win=="ban" or win=="warn" then
-ESX.TriggerServerCallback("el_bwh:getIndexedPlayerList",function(indexedPList)
+        ESX.TriggerServerCallback("el_bwh:getIndexedPlayerList",function(indexedPList)
 			SendNUIMessage({show=true,window=win,players=indexedPList})
 		end)
-	elseif win=="banlist" or win=="warnlist" then
+	elseif win == "banlist" or win == "warnlist" then
 		SendNUIMessage({loading=true,window=win})
 		ESX.TriggerServerCallback(win=="banlist" and "el_bwh:getBanList" or "el_bwh:getWarnList",function(list,pages)
 			SendNUIMessage({show=true,window=win,list=list,pages=pages})
@@ -159,14 +136,10 @@ ESX.TriggerServerCallback("el_bwh:getIndexedPlayerList",function(indexedPList)
 	SetNuiFocus(true, true)
 end)
 
---RegisterCommand("rdec",function(a,b,c)
-	--TriggerEvent("el_bwh:hideAssistPopup")
---end, false)
-
 if Config.assist_key then
-	Citizen.CreateThread(function()
+	CreateThread(function()
 		while true do
-			Citizen.Wait(0)
+			Wait(0)
 			if IsControlJustPressed(0, Config.assist_keys.accept) then
 				if not last_assist then
 					ESX.ShowNotification("~r~Még senki sem kért segitséget.")
@@ -184,7 +157,7 @@ if Config.assist_key then
 	end)
 end
 
-Citizen.CreateThread(function()
+CreateThread(function()
 TriggerEvent('chat:addSuggestion', '/rdec', 'Segitségkérés elutasitása.',{})
 TriggerEvent('chat:addSuggestion', '/report', 'Segitségkérés egy admintol.',{{name="Indok", help="Miért kell segitség?"}})
 TriggerEvent('chat:addSuggestion', '/creport', 'Segitségkérés visszavonása.',{})
