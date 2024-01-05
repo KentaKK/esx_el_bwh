@@ -148,7 +148,7 @@ local function deleteBans()
     end
     for _,b in ipairs(bancache) do
         if not b.unbanned and b.length and b.length < t then
-            MySQL.update('UPDATE `bwh_bans` SET `unbanned` = 1 WHERE `length` = ?',{os.date("%Y-%m-%d %H:%M",b.length)})
+            MySQL.update('UPDATE `bwh_bans` SET `unbanned` = ? WHERE `length` = ?',{1, os.date("%Y-%m-%d %H:%M:%S",b.length)})
         end
     end
     MySQL.update('DELETE FROM `bwh_bans` WHERE `unbanned` = ?',{1},function(o)
