@@ -18,11 +18,11 @@ There's a few commands this adds:
 - /bwh warnlist    <- opens the warning list
 - /bwh assists     <- shows pending/active assists in the chat
 - /bwh refresh     <- pulls all bans from the database and refreshes the ban cache
-- /accassist `<player id>` <- admin command, admins can accept help requests from players
-- /finassist       <- admin command, this closes the current help request and teleports you back to your original position
-- /decassist       <- admin command, this just hides the current assist popup on the screen
-- /assist `<reason>` <- player command, players can request help with this
-- /cassist         <- player command, this cancels the players ongoing assist request  
+- /r `<player id>` <- admin command, admins can accept help requests from players
+- /rend       <- admin command, this closes the current help request and teleports you back to your original position
+- /rdec       <- admin command, this just hides the current assist popup on the screen
+- /report `<reason>` <- player command, players can request help with this
+- /creport         <- player command, this cancels the players ongoing assist request  
 
 External banning/warning:
 **!! THESE ARE SERVER ONLY EVENTS !!**
