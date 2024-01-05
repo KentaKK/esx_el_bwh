@@ -39,7 +39,7 @@ end
 local function refreshBanCache()
     bancache={}
     for _,v in ipairs(MySQL.query.await("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,unbanned FROM bwh_bans")) do
-        table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender]~=nil and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
+        table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender] and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
     end
 end
 
@@ -59,10 +59,16 @@ local function logAdmin(msg)
     end
 end
 
+local function deleteBans()
+    MySQL.update('DELETE FROM `bwh_bans` WHERE `unbanned` = ?',{1},function(o)
+        print("Deleted "..o.." bans")
+    end)
+end
+
 local function banPlayer(xPlayer,xTarget,reason,length,offline)
     local targetidentifiers,offlinename,timestring,data = {},nil,nil,nil
     if offline then
-        data = MySQL.query.await('SELECT * FROM `bwh_identifiers` WHERE steam = ?',{xTarget})
+        data = MySQL.query.await('SELECT * FROM `bwh_identifiers` WHERE license = ?',{xTarget})
         if #data<1 then
             return false, "~r~A Játékos nincs az adatbázisban!"
         end
@@ -144,9 +150,16 @@ local function isBanned(identifiers)
     for _,ban in ipairs(bancache) do
         if not ban.unbanned and (not ban.length or ban.length > os.time()) then
             for _,bid in ipairs(ban.receiver) do
-                if bid:find("ip:") and Config.ip_ban then
+                if Config.ip_ban and bid:find("ip:") then
                     for _,pid in ipairs(identifiers) do
-                        if bid==pid then return true, ban end
+                        if bid == pid then return true, ban end
+                    end
+                else
+                    for _,pid in ipairs(identifiers) do
+                        if bid == pid then return true, ban end
+                        if ban.length and ban.length < os.time() then
+                            MySQL.update('UPDATE `bwh_bans` SET `unbanned` = ? WHERE `lenght` = ?',{1, ban.length})
+                        end
                     end
                 end
             end
@@ -413,6 +426,8 @@ RegisterCommand("bwh", function(source, args, _)
             end
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Függöben lévö segitségkérések:\n"..(openassistsmsg~="" and openassistsmsg or "^1Nincs függöben lévö segitségkérés!")}})
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Elérhetö segitségkérések:\n"..(activeassistsmsg~="" and activeassistsmsg or "^1Nincs elérhetö segitségkérés")}})
+        elseif args[1]=="delete" then
+            deleteBans()
         else
             TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Érvénytelen parancs! Egészitsd ki: (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7,^4reports^7)"}})
         end
