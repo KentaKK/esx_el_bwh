@@ -2,11 +2,15 @@ fx_version 'cerulean'
 game 'gta5'
 use_experimental_fxv2_oal 'yes'
 lua54 'yes'
+
 author 'Elipse458'
 description 'el_bwh'
 version '2.0.0'
 
-shared_script '@es_extended/imports.lua'
+shared_scripts {
+    '@es_extended/imports.lua',
+    '@ox_lib/init.lua'
+}
 
 ui_page 'html/index.html'
 
@@ -28,6 +32,3 @@ files {
     'html/jquery.datetimepicker.full.min.js',
     'html/date.format.js'
 }
-
-
-
