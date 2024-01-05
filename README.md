@@ -1,5 +1,5 @@
 # el_bwh
-FiveM Ban/Warning/Help-Assist System for ESX
+Rewritten FiveM Ban/Warning/Help-Assist System for ESX
 
 ## Installation
 1. Download the [resource]((https://github.com/KentaKK/esx_el_bwh))
@@ -16,6 +16,7 @@ There's a few commands this adds:
 - /bwh warn        <- opens the warn menu
 - /bwh banlist     <- opens the ban list
 - /bwh warnlist    <- opens the warning list
+- /bwh delete      <- delete expired bans
 - /bwh assists     <- shows pending/active assists in the chat
 - /bwh refresh     <- pulls all bans from the database and refreshes the ban cache
 - /r `<player id>` <- admin command, admins can accept help requests from players
