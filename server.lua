@@ -140,6 +140,10 @@ local function acceptAssist(xPlayer, target)
     end
 end
 
+local function deleteWarns()
+    MySQL.update('TRUNCATE `bwh_warnings`')
+end
+
 local function deleteBans()
     local ban = {}
     local t = os.time()
@@ -436,6 +440,8 @@ RegisterCommand("bwh", function(source, args, _)
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Elérhetö segitségkérések:\n"..(activeassistsmsg~="" and activeassistsmsg or "^1Nincs elérhetö segitségkérés")}})
         elseif args[1]=="delete" then
             deleteBans()
+        elseif args[1]=="deletewarns" then
+            deleteWarns()
         else
             TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Érvénytelen parancs! Egészitsd ki: (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7,^4reports^7)"}})
         end
