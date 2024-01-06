@@ -150,7 +150,7 @@ local function deleteBans()
     for _,v in ipairs(MySQL.query.await('SELECT `id`, `receiver`, `sender`, UNIX_TIMESTAMP(length) AS `length`, `reason`, `unbanned` FROM `bwh_bans`')) do
         table.insert(ban,{id=v.id,sender=v.sender,sender_name=namecache[v.sender] and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
     end
-    for _,b in ipairs(bancache) do
+    for _,b in ipairs(ban) do
         if not b.unbanned and b.length and b.length < t then
             MySQL.update('UPDATE `bwh_bans` SET `unbanned` = ? WHERE `length` = ?',{1, os.date("%Y-%m-%d %H:%M:%S",b.length)})
         end
