@@ -78,7 +78,7 @@ AddEventHandler("el_bwh:receiveWarn",function(sender,message)
 		EndScaleformMovieMethod()
 		PlaySoundFrontend(-1, "LOSER", "HUD_AWARDS")
 		local drawing = true
-		SetTimeout(Config.warning_screentime,function() drawing = false end)
+		SetTimeout(Config.warning_screentime * 1000,function() drawing = false end)
 		while drawing do
 			Wait(0)
 			DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255)
