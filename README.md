@@ -16,7 +16,8 @@ There's a few commands this adds:
 - /bwh warn        <- opens the warn menu
 - /bwh banlist     <- opens the ban list
 - /bwh warnlist    <- opens the warning list
-- /bwh delete      <- delete expired bans
+- /bwh delete      <- delete expired/unbanned bans
+- /bwh deletewarns <- delete all warns
 - /bwh assists     <- shows pending/active assists in the chat
 - /bwh refresh     <- pulls all bans from the database and refreshes the ban cache
 - /r `<player id>` <- admin command, admins can accept help requests from players
