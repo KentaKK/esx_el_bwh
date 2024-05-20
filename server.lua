@@ -1,4 +1,4 @@
-local DISCORD_WEBHOOK = "https://discord.com/api/webhooks/888033538283294721/mEtOmOu4xMr3ZGHVGpnKD3Y9oLOr_WE01FxFYcoMPQUSCXdN_sMj1o9rSbMRmQP3Mt20" -- paste your discord webhook between the quotes if you want to enable discord log.
+local DISCORD_WEBHOOK = "" -- paste your discord webhook between the quotes if you want to enable discord log.
 local DISCORD_NAME = "Ban-log"
 local STEAM_KEY = ""
 local DISCORD_IMAGE = "https://i.imgur.com/nOwaI24.png"
