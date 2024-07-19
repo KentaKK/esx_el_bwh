@@ -293,7 +293,7 @@ CreateThread(function() -- startup
     end)
 end)
 
-RegisterServerEvent('el_bwh:backupcheck')
+RegisterNetEvent('el_bwh:backupcheck')
 AddEventHandler('el_bwh:backupcheck', function()
     local identifiers = GetPlayerIdentifiers(source)
     local banned = isBanned(identifiers)
@@ -428,7 +428,7 @@ RegisterCommand("bwh", function(source, args, _)
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"ADMIN-SYSTEM |","Adatbázis frissitése folyamatban..."}})
             refreshNameCache()
             refreshBanCache()
-        elseif args[1]=="assists" then
+        elseif args[1]=="reports" then
             local openassistsmsg,activeassistsmsg = "",""
             for k,v in pairs(open_assists) do
                 openassistsmsg=openassistsmsg.."^5ID "..k.." ("..GetPlayerName(k)..")^7 - "..v.."\n"
@@ -438,12 +438,12 @@ RegisterCommand("bwh", function(source, args, _)
             end
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Függöben lévö segitségkérések:\n"..(openassistsmsg~="" and openassistsmsg or "^1Nincs függöben lévö segitségkérés!")}})
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"ADMIN-SYSTEM |"," Elérhetö segitségkérések:\n"..(activeassistsmsg~="" and activeassistsmsg or "^1Nincs elérhetö segitségkérés")}})
-        elseif args[1]=="delete" then
+        elseif args[1]=="deletebans" then
             deleteBans()
         elseif args[1]=="deletewarns" then
             deleteWarns()
         else
-            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Érvénytelen parancs! Egészitsd ki: (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7,^4reports^7)"}})
+            TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Érvénytelen parancs! Egészitsd ki: (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7,^4reports^7,^4deletebans^7,^4deletewarns^7)"}})
         end
     else
         TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"ADMIN-SYSTEM |"," Nincs jogosultságod ehhez a parancshoz!"}})
@@ -456,7 +456,7 @@ RegisterCommand("r", function(source, args, _)
     acceptAssist(xPlayer,target)
 end, false)
 
-RegisterServerEvent("el_bwh:acceptAssistKey")
+RegisterNetEvent("el_bwh:acceptAssistKey")
 AddEventHandler("el_bwh:acceptAssistKey",function(target)
     if not target then return end
     local _source = source
